@@ -7,7 +7,6 @@ using namespace sf;
 Texture bolaT;
 
 Sprite bola;
-
 float velX = 2;
 float velY = 2;
 
@@ -15,7 +14,7 @@ float velY = 2;
 
 int main(){
 	
-	if(!bolaT.loadFromFile("/Users/xbz/Downloads/Shiny_steel_ball.png")){
+	if(!bolaT.loadFromFile("Shiny_steel_ball.png")){
 			cout<< "Error al cargar textura Bola"<< endl;
 	}
 
@@ -38,10 +37,12 @@ int main(){
 
 		bola.move(velX,velY);
 
-		if(bola.getPosition().x  > 850 || bola.getPosition().x  < 0){
+		float ballRadius = (float)bolaT.getSize().x * 0.01f / 2;
+
+		if(bola.getPosition().x - ballRadius > 850 || bola.getPosition().x + ballRadius < 0){
 			velX *= -1;
 		}
-		if(bola.getPosition().y > 500 || bola.getPosition().y < 0){
+		if(bola.getPosition().y - ballRadius > 500 || bola.getPosition().y + ballRadius < 0){
 			velY *= -1;
 		}
 
