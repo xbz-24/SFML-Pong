@@ -2,7 +2,8 @@
 
 A simple implementation of the classic Pong game using the SFML library
 
-![Alt Text](https://github.com/Xbz-24/pong/blob/main/ezgif.com-video-to-gif.gif)
+![Pong Gameplay](https://github.com/Xbz-24/pong/blob/main/ezgif.com-video-to-gif.gif)
+
 
 
 
