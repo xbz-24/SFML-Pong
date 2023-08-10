@@ -5,9 +5,6 @@ A simple implementation of the classic Pong game using the SFML library
 ![Pong Gameplay](https://github.com/Xbz-24/pong/blob/main/ezgif.com-video-to-gif%20(1).gif)
 
 
-
-
-
 ## Description
 
 This project showcases a boucing ball (representing the classic Pong ball) that moves around the screen and bounces off the edges. The game window has a resolution of 850x500 pixels.
@@ -20,7 +17,16 @@ This project showcases a boucing ball (representing the classic Pong ball) that 
 
 1. Clone this repo to your local machine
 2. Navigate to the project directory
-3. Compile the game using C++ compiler, ensuring you link against the necessary SFML libraries.
+3. Compile the game using C++ compiler, ensuring you link against the necessary SFML libraries. 
+
+You can use: g++ -std=gnu++20 main.cpp \
+-I/opt/homebrew/Cellar/sfml/2.6.0/include \
+-L/opt/homebrew/Cellar/sfml/2.6.0/lib \
+-lsfml-graphics -lsfml-window -lsfml-system \
+-I/opt/homebrew/Cellar/box2d/2.4.1/include \
+-L/opt/homebrew/Cellar/box2d/2.4.1/lib \
+-lbox2d \
+-o main && ./main
 4. Run the compiled executable.
 
 
