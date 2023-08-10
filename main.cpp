@@ -1,6 +1,6 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
-#include <Box2D/Box2D.h>
+#include <box2d/box2d.h>
 #include <iostream>
 #include <cmath> 
 #include <cstdlib> 
@@ -11,51 +11,15 @@ const std::string path2ball = "Shiny_steel_ball.png";
 const std::string path2bar = "pallet5.png"; 
 const std::string path2reset = "refresh11.png"; 
 
-bool loadTexture(sf::Texture &texture, const std::string &path) {
-    if (!texture.loadFromFile(path)) {
-        std::cerr << "Failed to load texture from " << path << "!" << std::endl;
-        return false;
-    }
-    return true;
-}
-
-void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window) {
-    shape.setOrigin(12.f, 12.f);
-    shape.setPosition(window.getSize().x / 2, window.getSize().y / 2);
-    shape.setTexture(&ballTexture);
-}
-
-void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window) {
-    sprite.setTexture(barTexture);
-    sprite.setScale(0.176, 0.3584);
-    sprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
-    sprite.setPosition(xPosition, window.getSize().y / 2);
-}
-
-void resetBall(b2Body* ballBody, sf::RenderWindow &window) {
-    ballBody->SetTransform(b2Vec2(window.getSize().x / (2 * SCALE), window.getSize().y / (2 * SCALE)), 0);
-    float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
-    ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
-}
-
-void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window) {
-    sprite.setTexture(texture);
-    sprite.setScale(0.2, 0.2); // Resize the button to 20% of its original size
-    sprite.setOrigin(texture.getSize().x / 2, 0); // Center the sprite horizontally
-    sprite.setPosition(window.getSize().x / 2, 5);  // Positioning the reset button very close to the center top
-}
-
-void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window) {
-    if (sf::Keyboard::isKeyPressed(upKey) && sprite.getPosition().y - (texture.getSize().y * 0.3584 / 2) > 0) {
-        body->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up
-    }
-    else if (sf::Keyboard::isKeyPressed(downKey) && sprite.getPosition().y + (texture.getSize().y * 0.3584 / 2) < window.getSize().y) {
-        body->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down
-    }
-    else {
-        body->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
-    }
-}
+bool loadTexture(sf::Texture &texture, const std::string &path);
+void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window);
+void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window);
+void resetBall(b2Body* ballBody, sf::RenderWindow &window);
+void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window);
+void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window);
+void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window);
+void updateSpritePosition(sf::Sprite &sprite, b2Body* body);
+void updateSpritePosition(sf::CircleShape &shape, b2Body* body);
 
 int main() {
     srand(static_cast<unsigned int>(time(nullptr))); 
@@ -132,10 +96,8 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             } 
-            else if (event.type == sf::Event::MouseButtonPressed) {
-                if (resetSprite.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                    resetBall(ballBody, window);
-                }
+            else if (event.type == sf::Event::MouseButtonPressed && resetSprite.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                resetBall(ballBody, window);
             }
         }
 
@@ -144,31 +106,87 @@ int main() {
 
         world.Step(1/60.f, 12, 8);
 
-        // Adjust the ball's velocity based on its position
-        b2Vec2 position = ballBody->GetPosition();
-        b2Vec2 velocity = ballBody->GetLinearVelocity();
+        adjustBallVelocity(ballBody, shape, window);
 
-        if (position.x * SCALE <= shape.getRadius() || position.x * SCALE >= window.getSize().x - shape.getRadius()) {
-            velocity.x = -velocity.x;
-        }
-        if (position.y * SCALE <= shape.getRadius() || position.y * SCALE >= window.getSize().y - shape.getRadius()) {
-            velocity.y = -velocity.y;
-        }
+        updateSpritePosition(shape, ballBody);
+        updateSpritePosition(leftBarSprite, leftBarBody);
+        updateSpritePosition(rightBarSprite, rightBarBody);
 
-        ballBody->SetLinearVelocity(velocity);
-
-        shape.setPosition(SCALE * ballBody->GetPosition().x, SCALE * ballBody->GetPosition().y);
-        shape.setRotation(ballBody->GetAngle() * 180/b2_pi);
-
-        leftBarSprite.setPosition(SCALE * leftBarBody->GetPosition().x, SCALE * leftBarBody->GetPosition().y);
-        rightBarSprite.setPosition(SCALE * rightBarBody->GetPosition().x, SCALE * rightBarBody->GetPosition().y);
-
-        window.clear(sf::Color::Black);  // Background color set to black
+        window.clear(sf::Color::Black);
         window.draw(shape);
-        window.draw(leftBarSprite);  // Draw the left paddle
-        window.draw(rightBarSprite);  // Draw the right paddle
-        window.draw(resetSprite);  // Draw the reset button
+        window.draw(leftBarSprite);
+        window.draw(rightBarSprite);
+        window.draw(resetSprite);
         window.display();
     }
     return 0;
+}
+void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window) {
+    b2Vec2 position = ballBody->GetPosition();
+    b2Vec2 velocity = ballBody->GetLinearVelocity();
+
+    if (position.x * SCALE <= shape.getRadius() || position.x * SCALE >= window.getSize().x - shape.getRadius()) {
+        velocity.x = -velocity.x;
+    }
+    if (position.y * SCALE <= shape.getRadius() || position.y * SCALE >= window.getSize().y - shape.getRadius()) {
+        velocity.y = -velocity.y;
+    }
+
+    ballBody->SetLinearVelocity(velocity);
+}
+
+void updateSpritePosition(sf::Sprite &sprite, b2Body* body) {
+    sprite.setPosition(SCALE * body->GetPosition().x, SCALE * body->GetPosition().y);
+    sprite.setRotation(body->GetAngle() * 180/b2_pi);
+}
+
+bool loadTexture(sf::Texture &texture, const std::string &path) {
+    if (!texture.loadFromFile(path)) {
+        std::cerr << "Failed to load texture from " << path << "!" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window) {
+    shape.setOrigin(12.f, 12.f);
+    shape.setPosition(window.getSize().x / 2, window.getSize().y / 2);
+    shape.setTexture(&ballTexture);
+}
+
+void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window) {
+    sprite.setTexture(barTexture);
+    sprite.setScale(0.176, 0.3584);
+    sprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
+    sprite.setPosition(xPosition, window.getSize().y / 2);
+}
+
+void resetBall(b2Body* ballBody, sf::RenderWindow &window) {
+    ballBody->SetTransform(b2Vec2(window.getSize().x / (2 * SCALE), window.getSize().y / (2 * SCALE)), 0);
+    float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
+    ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
+}
+
+void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window) {
+    sprite.setTexture(texture);
+    sprite.setScale(0.2, 0.2); // Resize the button to 20% of its original size
+    sprite.setOrigin(texture.getSize().x / 2, 0); // Center the sprite horizontally
+    sprite.setPosition(window.getSize().x / 2, 5);  // Positioning the reset button very close to the center top
+}
+
+void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window) {
+    if (sf::Keyboard::isKeyPressed(upKey) && sprite.getPosition().y - (texture.getSize().y * 0.3584 / 2) > 0) {
+        body->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up
+    }
+    else if (sf::Keyboard::isKeyPressed(downKey) && sprite.getPosition().y + (texture.getSize().y * 0.3584 / 2) < window.getSize().y) {
+        body->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down
+    }
+    else {
+        body->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
+    }
+}
+
+void updateSpritePosition(sf::CircleShape &shape, b2Body* body) {
+    shape.setPosition(SCALE * body->GetPosition().x, SCALE * body->GetPosition().y);
+    shape.setRotation(body->GetAngle() * 180/b2_pi);
 }
