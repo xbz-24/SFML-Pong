@@ -2,51 +2,86 @@
 #include <SFML/Graphics.hpp>
 #include <Box2D/Box2D.h>
 #include <iostream>
-#include <cmath> // for sin and cos
-#include <cstdlib> // for rand and srand
-#include <ctime> // for time
+#include <cmath> 
+#include <cstdlib> 
+#include <ctime> 
 
 const float SCALE = 30.f; 
 const std::string path2ball = "Shiny_steel_ball.png";
-const std::string path2bar = "pallet5.png";  // Path to the paddle texture
+const std::string path2bar = "pallet5.png"; 
+const std::string path2reset = "refresh11.png"; 
 
-int main() {
-    srand(static_cast<unsigned int>(time(nullptr))); // Seed the random number generator
-
-    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pong", sf::Style::Default);
-    
-    // Load ball texture
-    sf::Texture ballTexture;
-    if (!ballTexture.loadFromFile(path2ball)) {
-        std::cerr << "Failed to load ball texture!" << std::endl;
-        return -1;
+bool loadTexture(sf::Texture &texture, const std::string &path) {
+    if (!texture.loadFromFile(path)) {
+        std::cerr << "Failed to load texture from " << path << "!" << std::endl;
+        return false;
     }
+    return true;
+}
 
-    sf::CircleShape shape(12.f);  // Reduced the ball size by 40% and then by an additional 20%
+void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window) {
     shape.setOrigin(12.f, 12.f);
     shape.setPosition(window.getSize().x / 2, window.getSize().y / 2);
     shape.setTexture(&ballTexture);
+}
 
-    // Load paddle texture
-    sf::Texture barTexture;
-    if (!barTexture.loadFromFile(path2bar)) {
-        std::cerr << "Failed to load paddle texture!" << std::endl;
-        return -1;
+void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window) {
+    sprite.setTexture(barTexture);
+    sprite.setScale(0.176, 0.3584);
+    sprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
+    sprite.setPosition(xPosition, window.getSize().y / 2);
+}
+
+void resetBall(b2Body* ballBody, sf::RenderWindow &window) {
+    ballBody->SetTransform(b2Vec2(window.getSize().x / (2 * SCALE), window.getSize().y / (2 * SCALE)), 0);
+    float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
+    ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
+}
+
+void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window) {
+    sprite.setTexture(texture);
+    sprite.setScale(0.2, 0.2); // Resize the button to 20% of its original size
+    sprite.setOrigin(texture.getSize().x / 2, 0); // Center the sprite horizontally
+    sprite.setPosition(window.getSize().x / 2, 5);  // Positioning the reset button very close to the center top
+}
+
+void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window) {
+    if (sf::Keyboard::isKeyPressed(upKey) && sprite.getPosition().y - (texture.getSize().y * 0.3584 / 2) > 0) {
+        body->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up
     }
+    else if (sf::Keyboard::isKeyPressed(downKey) && sprite.getPosition().y + (texture.getSize().y * 0.3584 / 2) < window.getSize().y) {
+        body->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down
+    }
+    else {
+        body->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
+    }
+}
 
-    // Left paddle setup
+int main() {
+    srand(static_cast<unsigned int>(time(nullptr))); 
+
+    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pong", sf::Style::Default);
+    
+    // Load ball texture and initialize ball
+    sf::Texture ballTexture;
+    if (!loadTexture(ballTexture, path2ball)) return -1;
+    sf::CircleShape shape(12.f);
+    initBall(shape, ballTexture, window);
+
+    // Load paddle texture and initialize paddles
+    sf::Texture barTexture;
+    if (!loadTexture(barTexture, path2bar)) return -1;
     sf::Sprite leftBarSprite;
-    leftBarSprite.setTexture(barTexture);
-    leftBarSprite.setScale(0.176, 0.448);  // Adjusted the size of the paddle by an additional 20%
-    leftBarSprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
-    leftBarSprite.setPosition(24, window.getSize().y / 2);
-
-    // Right paddle setup
+    initPaddle(leftBarSprite, barTexture, 24, window);
     sf::Sprite rightBarSprite;
-    rightBarSprite.setTexture(barTexture);
-    rightBarSprite.setScale(0.176, 0.448);  // Adjusted the size of the paddle by an additional 20%
-    rightBarSprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
-    rightBarSprite.setPosition(window.getSize().x - 24, window.getSize().y / 2);
+    initPaddle(rightBarSprite, barTexture, window.getSize().x - 24, window);
+
+    // Load reset button texture and set its position
+    sf::Texture resetTexture;
+    if (!loadTexture(resetTexture, path2reset)) return -1;
+    // Initialize reset button
+    sf::Sprite resetSprite;
+    initResetButton(resetSprite, resetTexture, window);
 
     b2Vec2 gravity(0.f, 0.f); 
     b2World world(gravity);
@@ -74,7 +109,7 @@ int main() {
     b2Body* leftBarBody = world.CreateBody(&leftBarBodyDef);
 
     b2PolygonShape leftBarShape;
-    leftBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.448 / 2) / SCALE);
+    leftBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.3584 / 2) / SCALE);
     leftBarBody->CreateFixture(&leftBarShape, 0.0f);
 
     // Right paddle physics
@@ -84,7 +119,7 @@ int main() {
     b2Body* rightBarBody = world.CreateBody(&rightBarBodyDef);
 
     b2PolygonShape rightBarShape;
-    rightBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.448 / 2) / SCALE);
+    rightBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.3584 / 2) / SCALE);
     rightBarBody->CreateFixture(&rightBarShape, 0.0f);
 
     // Introduce a slight randomness to the ball's initial angle
@@ -97,32 +132,15 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             } 
-            else if (event.type == sf::Event::Resized) {
-                // Handle window resizing if needed
+            else if (event.type == sf::Event::MouseButtonPressed) {
+                if (resetSprite.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                    resetBall(ballBody, window);
+                }
             }
         }
 
-        // Handle user input to move the left paddle
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) && leftBarSprite.getPosition().y - (barTexture.getSize().x * 0.448 / 2) > 0) {
-            leftBarBody->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up at reduced speed
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) && leftBarSprite.getPosition().y + (barTexture.getSize().x * 0.448 / 2) < window.getSize().y) {
-            leftBarBody->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down at reduced speed
-        }
-        else {
-            leftBarBody->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
-        }
-
-        // Handle user input to move the right paddle
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) && rightBarSprite.getPosition().y - (barTexture.getSize().x * 0.448 / 2) > 0) {
-            rightBarBody->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up at reduced speed
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) && rightBarSprite.getPosition().y + (barTexture.getSize().x * 0.448 / 2) < window.getSize().y) {
-            rightBarBody->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down at reduced speed
-        }
-        else {
-            rightBarBody->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
-        }
+        handlePaddleMovement(leftBarSprite, barTexture, leftBarBody, sf::Keyboard::W, sf::Keyboard::S, window);
+        handlePaddleMovement(rightBarSprite, barTexture, rightBarBody, sf::Keyboard::Up, sf::Keyboard::Down, window);
 
         world.Step(1/60.f, 12, 8);
 
@@ -149,6 +167,7 @@ int main() {
         window.draw(shape);
         window.draw(leftBarSprite);  // Draw the left paddle
         window.draw(rightBarSprite);  // Draw the right paddle
+        window.draw(resetSprite);  // Draw the reset button
         window.display();
     }
     return 0;
