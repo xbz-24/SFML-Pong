@@ -2,7 +2,7 @@
 
 A simple implementation of the classic Pong game using the SFML library
 
-https://cdn.discordapp.com/attachments/1136747661207285771/1139119954067730532/ezgif.com-video-to-gif.gif
+
 
 
 ## Description
