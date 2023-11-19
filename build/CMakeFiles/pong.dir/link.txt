@@ -1,0 +1,1 @@
+/nix/store/3hbxw05vfs6m1155xa6pvribs3bv777n-gcc-wrapper-12.2.0/bin/g++ -rdynamic CMakeFiles/pong.dir/main.cpp.o -o pong  /nix/store/mk2dh1va00xkk2ri19jj4y77m22cjcnq-sfml-2.5.1/lib/libsfml-graphics.so.2.5.1 /nix/store/mk2dh1va00xkk2ri19jj4y77m22cjcnq-sfml-2.5.1/lib/libsfml-window.so.2.5.1 /nix/store/mk2dh1va00xkk2ri19jj4y77m22cjcnq-sfml-2.5.1/lib/libsfml-system.so.2.5.1 -lBox2D 
