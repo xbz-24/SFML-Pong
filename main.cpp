@@ -1,31 +1,29 @@
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
-#include <box2d/box2d.h>
+#include <Box2D/Box2D.h>
 #include <iostream>
 #include <cmath> 
 #include <cstdlib> 
 #include <ctime> 
 
 const float SCALE = 30.f; 
-const std::string path2ball = "bola.png";
-const std::string path2bar = "paleta.png"; 
-const std::string path2reset = "refresh11.png"; 
+const std::string path2ball = "../bola.png";
+const std::string path2bar = "../paleta.png"; 
+const std::string path2reset = "../refresh11.png"; 
 
 int playerScore = 0;
 int enemyScore = 0;
-sf::Font font;
-sf::Text scoreText;
 
 bool loadTexture(sf::Texture &texture, const std::string &path, bool applyMask = false);
 void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window);
 void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window);
-void resetBall(b2Body* ballBody, sf::RenderWindow &window);
-void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window);
+void resetBall(b2Body* ballBody, sf::RenderWindow &window, sf::Text &scoreText);
+void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window, sf::Text &scoreText);
 void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window);
-void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window);
+void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window, sf::Text &scoreText);
 void updateSpritePosition(sf::Sprite &sprite, b2Body* body);
 void updateSpritePosition(sf::CircleShape &shape, b2Body* body);
-void updateScoreDisplay();
+void updateScoreDisplay(sf::Text &scoreText);
 
 int main() {
     srand(static_cast<unsigned int>(time(nullptr))); 
@@ -34,17 +32,18 @@ int main() {
     settings.antialiasingLevel = 8;
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pong", sf::Style::Default, settings);
     
-    if (!font.loadFromFile("/Users/xbz/Library/Fonts/HackNerdFont-Regular.ttf")) {
+    sf::Font font;
+    if (!font.loadFromFile("../fonts/HackNerdFont-Regular.ttf")) {
         std::cerr << "Failed to load font!" << std::endl;
         return -1;
     }
 
+    sf::Text scoreText;
     scoreText.setFont(font);
     scoreText.setCharacterSize(24);
     scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition(window.getSize().x - 100, 10);
-    updateScoreDisplay();
-
+    updateScoreDisplay(scoreText);  
    
     sf::Texture ballTexture;
     if (!loadTexture(ballTexture, path2ball, true)) return -1;
@@ -61,7 +60,7 @@ int main() {
     sf::Texture resetTexture;
     if (!loadTexture(resetTexture, path2reset)) return -1;
     sf::Sprite resetSprite;
-    initResetButton(resetSprite, resetTexture, window);
+    initResetButton(resetSprite, resetTexture, window, scoreText);
 
     b2Vec2 gravity(0.f, 0.f); 
     b2World world(gravity);
@@ -104,22 +103,22 @@ int main() {
 
 
   while (window.isOpen()) {
-  sf::Event event;
+	sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
             } 
             else if (event.type == sf::Event::MouseButtonPressed && resetSprite.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                resetBall(ballBody, window);
+                resetBall(ballBody, window, scoreText);
                 playerScore = 0;
                 enemyScore = 0;
-                updateScoreDisplay();
+                updateScoreDisplay(scoreText);
             }
             else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::R) {
-                resetBall(ballBody, window);
+                resetBall(ballBody, window, scoreText);
                 playerScore = 0;
                 enemyScore = 0;
-                updateScoreDisplay();
+                updateScoreDisplay(scoreText);
             }
         }
 
@@ -128,7 +127,8 @@ int main() {
 
         world.Step(1/60.f, 12, 8);
 
-        adjustBallVelocity(ballBody, shape, window);
+        adjustBallVelocity(ballBody, shape, window, scoreText);
+        updateScoreDisplay(scoreText);
 
         updateSpritePosition(shape, ballBody);
         updateSpritePosition(leftBarSprite, leftBarBody);
@@ -145,19 +145,19 @@ int main() {
     return 0;
 }
 
-void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window) {
+void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window, sf::Text &scoreText) {
     b2Vec2 position = ballBody->GetPosition();
     b2Vec2 velocity = ballBody->GetLinearVelocity();
 
     if (position.x * SCALE <= shape.getRadius()) {
         velocity.x = -velocity.x;
         enemyScore++;
-        updateScoreDisplay();  // Update the score display
+        updateScoreDisplay(scoreText);  // Update the score display
     }
     if (position.x * SCALE >= window.getSize().x - shape.getRadius()) {
         velocity.x = -velocity.x;
         playerScore++;
-        updateScoreDisplay();  // Update the score display
+        updateScoreDisplay(scoreText);  // Update the score display
     }
     if (position.y * SCALE <= shape.getRadius() || position.y * SCALE >= window.getSize().y - shape.getRadius()) {
         velocity.y = -velocity.y;
@@ -166,7 +166,7 @@ void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWind
     ballBody->SetLinearVelocity(velocity);
 }
 
-void updateScoreDisplay() {
+void updateScoreDisplay(sf::Text &scoreText) {
     scoreText.setString(std::to_string(playerScore) + " - " + std::to_string(enemyScore));
 }
 
@@ -210,16 +210,16 @@ void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf
     sprite.setPosition(std::round(xPosition), std::round(window.getSize().y / 2));
 }
 
-void resetBall(b2Body* ballBody, sf::RenderWindow &window) {
+void resetBall(b2Body* ballBody, sf::RenderWindow &window, sf::Text &scoreText) {
     ballBody->SetTransform(b2Vec2(window.getSize().x / (2 * SCALE), window.getSize().y / (2 * SCALE)), 0);
     float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
     ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
     playerScore = 0;
     enemyScore = 0;
-    updateScoreDisplay();
+    updateScoreDisplay(scoreText);
 }
 
-void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window) {
+void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow &window, sf::Text &scoreText) {
     sprite.setTexture(texture);
     sprite.setScale(0.12, 0.12); // Resize the button to 20% of its original size
     sprite.setOrigin(texture.getSize().x / 2, 0); // Center the sprite horizontally
