@@ -1,7 +1,12 @@
 # Basic Pong 
 
+## First Milestone 
+
+Adjusting the ball collisions, I used Box2D so this was pretty straightforward (the library does most of the collision logic)
+
 ![Pong Gameplay](https://github.com/Xbz-24/pong/blob/main/gifs/ezgif.com-video-to-gif%20(1).gif)
 
+Also for this milestone I added textures for the sprites and FullScreen Support (using SFML window & sf::VideoMode)
 
 ## Overview
 
