@@ -1,34 +1,46 @@
-# Pong
-
-A simple implementation of the classic Pong game using the SFML library
+# basic pong 
 
 ![Pong Gameplay](https://github.com/Xbz-24/pong/blob/main/gifs/ezgif.com-video-to-gif%20(1).gif)
 
 
-## Description
+## Overview
 
-This project showcases a boucing ball (representing the classic Pong ball) that moves around the screen and bounces off the edges. The game window has a resolution of 850x500 pixels.
+This project is a modern reinterpretation fo the classic Pong game, developed using C++ with the SFML and Box2D libraries. It features a two-dimensional table tennis-like game where players control paddes to hit a ball back and forth.
+
+## Features
+
+- High-resolution graphics and smooth gameplay.
+- Physics-based movement and collision handling using Box2D.
+- Customizable paddle and ball textures.
+- FPS counter for performance monitoring.
+- Scalable to different screen resolutions.
 
 ## Prerequisites
 
-- SFML library: This game uses the Simple and Fast Multimedia Library (SFML) for rendering and handling user input. Ensure you have SFML. Installed and set up correctly.
+- SFML 2.5 or higher 
+- Box2D 
+- CMake 3.0 or higher
+- A C++20 compatible compiler
 
 ## How to Run
 
 1. Clone this repo to your local machine
 2. Navigate to the project directory
-3. Compile the game using C++ compiler, ensuring you link against the necessary SFML libraries. 
+3. Compile the game using Cmake
 
-You can use: g++ -std=gnu++20 main.cpp \
--I/opt/homebrew/Cellar/sfml/2.6.0/include \
--L/opt/homebrew/Cellar/sfml/2.6.0/lib \
--lsfml-graphics -lsfml-window -lsfml-system \
--I/opt/homebrew/Cellar/box2d/2.4.1/include \
--L/opt/homebrew/Cellar/box2d/2.4.1/lib \
--lbox2d \
--o main && ./main
-4. Run the compiled executable.
+For linux/macos you can use:
+    mkdir -p ~/games
+    git clone -b main https://github.com/Xbz-24/pong.git ~/games 
+    cd ~/games/build 
+    rm -rf *
+    cmake -B . -S ..
+    make
 
+4. Run the compiled executable:
+    cd ~/games/build
+    ./pong
+
+5. Enjoy.
 
 ## Code Overview
 
@@ -36,7 +48,6 @@ You can use: g++ -std=gnu++20 main.cpp \
 - The ball is set to move with a certain velocity in both the x and y directions.
 - The game loop checks for window close events and updates the ball's position.
 - If the ball reaches the edges of the window, it reverses its velocity to simulate a bounce.
-
 
 ## Future Improvements
 
