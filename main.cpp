@@ -12,8 +12,8 @@ const float PADDLE_SPEED = 50.0f;
 const float MAX_BALL_SPEED = 60.0f;
 const float PADDLE_HEIGHT_SCALE = 0.25; 
 const float ballSpeedMultiplier = 90.2f;
-const unsigned int SCREEN_WIDTH = 1920;
-const unsigned int SCREEN_HEIGHT= 1080;
+const unsigned int SCREEN_WIDTH = 1440;
+const unsigned int SCREEN_HEIGHT= 900;
 const unsigned int SCREEN_REFRESH_RATE = 60;
 //  ../images/bola.png
 const std::string path2ball = "../images/fireball32.png";
