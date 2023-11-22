@@ -7,13 +7,25 @@
 #include <ctime> 
 
 const float SCALE = 30.f; 
-const std::string path2ball = "../bola.png";
-const std::string path2bar = "../paleta.png"; 
-const std::string path2reset = "../refresh11.png"; 
+const float MIN_HORIZONTAL_SPEED = 50.5f;
+const float PADDLE_SPEED = 50.0f;
+const float MAX_BALL_SPEED = 60.0f;
+const float PADDLE_HEIGHT_SCALE = 0.25; 
+const float ballSpeedMultiplier = 90.2f;
+const unsigned int SCREEN_WIDTH = 1920;
+const unsigned int SCREEN_HEIGHT= 1080;
+const unsigned int SCREEN_REFRESH_RATE = 60;
+//  ../images/bola.png
+const std::string path2ball = "../images/fireball32.png";
+// ../images/paleta.png
+const std::string path2bar = "../images/resized_tile_2.png"; 
 
-int playerScore = 0;
-int enemyScore = 0;
+const std::string path2reset = "../images/refresh11.png"; 
 
+unsigned int playerScore = 0;
+unsigned int enemyScore = 0;
+
+void updateBackground(sf::Sprite& sprite1, sf::Sprite& sprite2, const sf::Texture& texture, float moveSpeed, float deltaTime);
 bool loadTexture(sf::Texture &texture, const std::string &path, bool applyMask = false);
 void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow &window);
 void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window);
@@ -27,16 +39,51 @@ void updateScoreDisplay(sf::Text &scoreText);
 
 int main() {
     srand(static_cast<unsigned int>(time(nullptr))); 
-
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pong", sf::Style::Default, settings);
+    //sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Pong", sf::Style::Fullscreen, settings);
+    std::vector<sf::VideoMode> modes = sf::VideoMode::getFullscreenModes();
+    for (const auto& mode : modes) {
+        //std::cout << "Mode: " << mode.width << "x" << mode.height << std::endl;
+    }
+    //sf::RenderWindow window(modes[0], "Pong", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1920, 1080), "Pong", sf::Style::Fullscreen, settings);
+    //sf::RenderWindow window(sf::VideoMode(1920, 1080), "Pong", sf::Style::Titlebar | sf::Style::Close, settings);
+    //sf::RenderWindow window(sf::VideoMode(modes[0].height,modes[0].width,60), "Pong", sf::Style::Titlebar | sf::Style::Close, settings);
+
+    // sf::VideoMode params: WIDTH, HEIGHT, BITS PER PIXEL
+    sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Pong", sf::Style::Titlebar | sf::Style::Close, settings);
+
+    window.setPosition(sf::Vector2i(0,0)); // Positions the window at the top-left corner of the primary monitor
+    window.setFramerateLimit(SCREEN_REFRESH_RATE);
     
     sf::Font font;
     if (!font.loadFromFile("../fonts/HackNerdFont-Regular.ttf")) {
         std::cerr << "Failed to load font!" << std::endl;
         return -1;
     }
+    sf::Text fpsText;
+    fpsText.setFont(font);
+    fpsText.setCharacterSize(20);
+    fpsText.setFillColor(sf::Color::White);
+    fpsText.setPosition(10,10);
+    sf::Clock fpsClock;
+
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite1, backgroundSprite2;
+    //../images/80-retro-mountains.png
+    if(!backgroundTexture.loadFromFile("../images/nature_6/origbig.png")){
+        std::cerr << "Failed to load background texture!"<<std::endl;
+        return -1;
+    }
+    backgroundSprite1.setTexture(backgroundTexture);
+    backgroundSprite2.setTexture(backgroundTexture);
+
+    // backgroundSprite.setScale(
+    //     window.getSize().x / backgroundSprite.getLocalBounds().width,
+    //     window.getSize().y / backgroundSprite.getLocalBounds().height
+    // );
+    backgroundSprite2.setPosition(sf::Vector2f(backgroundTexture.getSize().x, 0));
 
     sf::Text scoreText;
     scoreText.setFont(font);
@@ -44,7 +91,7 @@ int main() {
     scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition(window.getSize().x - 100, 10);
     updateScoreDisplay(scoreText);  
-   
+
     sf::Texture ballTexture;
     if (!loadTexture(ballTexture, path2ball, true)) return -1;
     sf::CircleShape shape(12.f);
@@ -86,7 +133,8 @@ int main() {
     b2Body* leftBarBody = world.CreateBody(&leftBarBodyDef);
 
     b2PolygonShape leftBarShape;
-    leftBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.3584 / 2) / SCALE);
+    leftBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, 
+                          (barTexture.getSize().y * PADDLE_HEIGHT_SCALE/ 2) / SCALE);
     leftBarBody->CreateFixture(&leftBarShape, 0.0f);
 
     b2BodyDef rightBarBodyDef;
@@ -95,15 +143,20 @@ int main() {
     b2Body* rightBarBody = world.CreateBody(&rightBarBodyDef);
 
     b2PolygonShape rightBarShape;
-    rightBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, (barTexture.getSize().y * 0.3584 / 2) / SCALE);
+    rightBarShape.SetAsBox((barTexture.getSize().x * 0.176 / 2) / SCALE, 
+                           (barTexture.getSize().y * PADDLE_HEIGHT_SCALE/ 2) / SCALE);
     rightBarBody->CreateFixture(&rightBarShape, 0.0f);
 
     float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
-    ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
+    sf::Clock deltaClock;
+    ballBody->SetLinearVelocity(b2Vec2(22 * cos(angle) * ballSpeedMultiplier,
+                                        2 * sin(angle) * ballSpeedMultiplier)); 
 
+    sf::Clock clock;
+    float moveSpeed = -100.0f; 
 
-  while (window.isOpen()) {
-	sf::Event event;
+    while (window.isOpen()) {
+        sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
@@ -122,8 +175,10 @@ int main() {
             }
         }
 
-        handlePaddleMovement(leftBarSprite, barTexture, leftBarBody, sf::Keyboard::W, sf::Keyboard::S, window);
-        handlePaddleMovement(rightBarSprite, barTexture, rightBarBody, sf::Keyboard::Up, sf::Keyboard::Down, window);
+        float deltaTime = clock.restart().asSeconds();
+
+        handlePaddleMovement(leftBarSprite, barTexture, leftBarBody, sf::Keyboard::W, sf::Keyboard::S,  window);
+        handlePaddleMovement(rightBarSprite, barTexture, rightBarBody, sf::Keyboard::O, sf::Keyboard::K,  window);
 
         world.Step(1/60.f, 12, 8);
 
@@ -134,33 +189,78 @@ int main() {
         updateSpritePosition(leftBarSprite, leftBarBody);
         updateSpritePosition(rightBarSprite, rightBarBody);
 
-        window.clear(sf::Color(0, 0, 139));  // Dark blue color
+        float frameTime = fpsClock.restart().asSeconds();
+        float fps = 1.0f / frameTime;
+        fpsText.setString("FPS: " + std::to_string(static_cast<int>(fps)));
+        updateBackground(backgroundSprite1, backgroundSprite2, backgroundTexture, moveSpeed, deltaTime);
+        //window.clear(sf::Color(0, 0, 139));  // Dark blue color
+        window.clear();
+        window.draw(backgroundSprite1);
+        window.draw(backgroundSprite2);
+
         window.draw(shape);
         window.draw(leftBarSprite);
         window.draw(rightBarSprite);
         window.draw(resetSprite);
         window.draw(scoreText);
+        window.draw(fpsText);
         window.display();
     }
     return 0;
 }
+void updateBackground(sf::Sprite& sprite1, sf::Sprite& sprite2, const sf::Texture& texture, float moveSpeed, float deltaTime) {
+    sprite1.move(moveSpeed * deltaTime, 0);
+    sprite2.move(moveSpeed * deltaTime, 0);
+
+    if (sprite1.getPosition().x + texture.getSize().x < 0) {
+        sprite1.setPosition(sf::Vector2f(sprite2.getPosition().x + texture.getSize().x, 0));
+    }
+
+    if (sprite2.getPosition().x + texture.getSize().x < 0) {
+        sprite2.setPosition(sf::Vector2f(sprite1.getPosition().x + texture.getSize().x, 0));
+    }
+}
 
 void adjustBallVelocity(b2Body* ballBody, sf::CircleShape &shape, sf::RenderWindow &window, sf::Text &scoreText) {
-    b2Vec2 position = ballBody->GetPosition();
     b2Vec2 velocity = ballBody->GetLinearVelocity();
+    b2Vec2 position = ballBody->GetPosition();
+
+    float ballTop = position.y * SCALE - shape.getRadius();
+    float ballBottom = position.y * SCALE + shape.getRadius();
+    float ballLeft = position.x * SCALE - shape.getRadius();
+    float ballRight = position.x * SCALE + shape.getRadius();
+    if (ballLeft <= 0 || ballRight >= window.getSize().x) {
+        velocity.x = -velocity.x;
+    }
+    if (ballTop <= 0 || ballBottom >= window.getSize().y) {
+        velocity.y = -velocity.y;
+    }
+    float speed = velocity.Length();
+    if (speed > MAX_BALL_SPEED)
+    {
+        velocity.x = (velocity.x / speed) * MAX_BALL_SPEED;
+        velocity.y = (velocity.y / speed) * MAX_BALL_SPEED;
+        ballBody->SetLinearVelocity(velocity);
+    }
+    position = ballBody->GetPosition();
+    velocity = ballBody->GetLinearVelocity();
 
     if (position.x * SCALE <= shape.getRadius()) {
-        velocity.x = -velocity.x;
+        velocity.x = -1.1*velocity.x;
         enemyScore++;
         updateScoreDisplay(scoreText);  // Update the score display
     }
     if (position.x * SCALE >= window.getSize().x - shape.getRadius()) {
-        velocity.x = -velocity.x;
+        velocity.x = -1.1*velocity.x;
         playerScore++;
         updateScoreDisplay(scoreText);  // Update the score display
     }
     if (position.y * SCALE <= shape.getRadius() || position.y * SCALE >= window.getSize().y - shape.getRadius()) {
         velocity.y = -velocity.y;
+        velocity.x = (velocity.x >= 0 ? 1 : -1) * std::max(std::abs(velocity.x), MIN_HORIZONTAL_SPEED);
+    }
+    if (std::abs(velocity.x) < MIN_HORIZONTAL_SPEED){
+        velocity.x = (velocity.x > 0 ? 1 : -1) * MIN_HORIZONTAL_SPEED;
     }
 
     ballBody->SetLinearVelocity(velocity);
@@ -205,15 +305,16 @@ void initBall(sf::CircleShape &shape, sf::Texture &ballTexture, sf::RenderWindow
 
 void initPaddle(sf::Sprite &sprite, sf::Texture &barTexture, float xPosition, sf::RenderWindow &window) {
     sprite.setTexture(barTexture);
-    sprite.setScale(0.176, 0.3584);
+    sprite.setScale(0.176, PADDLE_HEIGHT_SCALE);
     sprite.setOrigin(barTexture.getSize().x / 2, barTexture.getSize().y / 2);
     sprite.setPosition(std::round(xPosition), std::round(window.getSize().y / 2));
 }
 
 void resetBall(b2Body* ballBody, sf::RenderWindow &window, sf::Text &scoreText) {
     ballBody->SetTransform(b2Vec2(window.getSize().x / (2 * SCALE), window.getSize().y / (2 * SCALE)), 0);
-    float angle = (45 + (rand() % 10 - 5)) * (b2_pi / 180);
-    ballBody->SetLinearVelocity(b2Vec2(2 * cos(angle), 2 * sin(angle)));
+    float angle = (rand() % 10 - 5) * (b2_pi / 180);
+    ballBody->SetLinearVelocity(b2Vec2(10 * cos(angle) * ballSpeedMultiplier,
+                                        1 * sin(angle) * ballSpeedMultiplier));
     playerScore = 0;
     enemyScore = 0;
     updateScoreDisplay(scoreText);
@@ -226,15 +327,20 @@ void initResetButton(sf::Sprite &sprite, sf::Texture &texture, sf::RenderWindow 
     sprite.setPosition(std::round(window.getSize().x / 2), 5);  // Positioning the reset button very close to the center top
 }
 
-void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey, sf::RenderWindow &window) {
-    if (sf::Keyboard::isKeyPressed(upKey) && sprite.getPosition().y - (texture.getSize().y * 0.3584 / 2) > 0) {
-        body->SetLinearVelocity(b2Vec2(0, -2.5));  // Move up
+void handlePaddleMovement(sf::Sprite &sprite, sf::Texture &texture, b2Body* body, sf::Keyboard::Key upKey, sf::Keyboard::Key downKey,  sf::RenderWindow &window) {
+    sf::Vector2f paddleSize(texture.getSize().x * sprite.getScale().x, texture.getSize().y * sprite.getScale().y);
+
+    float paddleTop = sprite.getPosition().y - paddleSize.y / 2;
+    float paddleBottom = sprite.getPosition().y + paddleSize.y / 2;
+
+    if (sf::Keyboard::isKeyPressed(upKey) && paddleTop > 0) {
+        body->SetLinearVelocity(b2Vec2(0, -PADDLE_SPEED));
     }
-    else if (sf::Keyboard::isKeyPressed(downKey) && sprite.getPosition().y + (texture.getSize().y * 0.3584 / 2) < window.getSize().y) {
-        body->SetLinearVelocity(b2Vec2(0, 2.5));  // Move down
+    else if (sf::Keyboard::isKeyPressed(downKey) && paddleBottom < window.getSize().y) {
+        body->SetLinearVelocity(b2Vec2(0, PADDLE_SPEED));
     }
     else {
-        body->SetLinearVelocity(b2Vec2(0, 0));  // Stop moving
+        body->SetLinearVelocity(b2Vec2(0, 0));
     }
 }
 

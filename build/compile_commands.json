@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/daily/Projects/pong3/build",
+  "command": "/run/current-system/sw/bin/g++   -g -std=gnu++20 -o CMakeFiles/pong.dir/main.cpp.o -c /home/daily/Projects/pong3/main.cpp",
+  "file": "/home/daily/Projects/pong3/main.cpp"
+}
+]
