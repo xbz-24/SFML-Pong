@@ -1,4 +1,4 @@
-# basic pong 
+# Basic Pong 
 
 ![Pong Gameplay](https://github.com/Xbz-24/pong/blob/main/gifs/ezgif.com-video-to-gif%20(1).gif)
 
@@ -28,19 +28,19 @@ This project is a modern reinterpretation fo the classic Pong game, developed us
 2. Navigate to the project directory
 3. Compile the game using Cmake
 
-For linux/macos you can use:
-    mkdir -p ~/games
-    git clone -b main https://github.com/Xbz-24/pong.git ~/games 
-    cd ~/games/build 
-    rm -rf *
-    cmake -B . -S ..
-    make
+### For linux/macos you can use:
+1. mkdir -p ~/games
+2. git clone -b main https://github.com/Xbz-24/pong.git ~/games 
+3. cd ~/games/build 
+4. rm -rf *
+5. cmake -B . -S ..
+6. make
 
-4. Run the compiled executable:
-    cd ~/games/build
-    ./pong
+Run the compiled executable:
 
-5. Enjoy.
+7. cd ~/games/build
+8. ./pong
+9. Enjoy.
 
 ## Code Overview
 
