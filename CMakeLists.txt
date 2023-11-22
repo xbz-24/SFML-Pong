@@ -9,4 +9,8 @@ find_package(Box2D CONFIG REQUIRED)
 
 add_executable(pong main.cpp)
 
-target_link_libraries(pong sfml-graphics sfml-window sfml-system Box2D)
+if(TARGET box2d::box2d)
+    target_link_libraries(pong sfml-graphics sfml-window sfml-system box2d::box2d)
+else()
+    target_link_libraries(pong sfml-graphics sfml-window sfml-system Box2D)
+endif()
