@@ -6,7 +6,7 @@
 			[
 				{
 					"build" : ".",
-					"jsonFile" : "directory-.-f5ebdc15457944623624.json",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
 					"minimumCMakeVersion" : 
 					{
 						"string" : "3.0"
@@ -19,7 +19,7 @@
 					]
 				}
 			],
-			"name" : "",
+			"name" : "Debug",
 			"projects" : 
 			[
 				{
@@ -39,7 +39,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "pong::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-pong-d75de060abc7b2fc80cc.json",
+					"jsonFile" : "target-pong-Debug-d1292e3c9c1dd03a158e.json",
 					"name" : "pong",
 					"projectIndex" : 0
 				}
